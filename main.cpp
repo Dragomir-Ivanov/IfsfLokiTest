@@ -182,15 +182,17 @@ class CompositeField: public Base, public T
 public:
     void serialize()
     {
-        Base::serialize();
         cout << T::serialize() << endl;
+
+        Base::serialize();
     }
 
     void deserialize()
     {
-        Base::deserialize();
         string buffer;
         T::deserialize(buffer);
+
+        Base::deserialize();
     }
 };
 
@@ -199,6 +201,13 @@ template <class T>
 class CompositeField<T,EmptyType>: public EmptyType, public T
 {
 public:
+    void serialize()
+    {
+    }
+
+    void deserialize()
+    {
+    }
 };
 
 
@@ -218,6 +227,7 @@ int main()
     message.c(67.88);
 
     message.serialize();
+    message.deserialize();
 
     return 0;
 }
