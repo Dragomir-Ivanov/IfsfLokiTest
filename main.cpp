@@ -16,8 +16,8 @@ class Field_Base
 public:
     typedef T DataType;
 
-    Field_Base(const size_t id):
-        id_(id)
+    Field_Base(const size_t id,const string& name):
+        id_(id),fieldName_(name)
     {
     }
 
@@ -57,9 +57,15 @@ public:
         return id_;
     }
 
+    string getFieldName() const
+    {
+        return fieldName_;
+    }
+
 private:
     size_t id_;
     DataType data_;
+    string fieldName_;
 
     Field_Base();
 };
@@ -68,7 +74,7 @@ class Field_A: public Field_Base<int>
 {
 public:
     Field_A(const size_t id):
-        Field_Base<int>(id)
+        Field_Base<int>(id,"A")
     {
 
     }
@@ -81,7 +87,7 @@ class Field_B: public Field_Base<string>
 {
 public:
     Field_B(const size_t id):
-        Field_Base<string>(id)
+        Field_Base<string>(id,"B")
     {
 
     }
@@ -94,7 +100,7 @@ class Field_C: public Field_Base<double>
 {
 public:
     Field_C(const size_t id):
-        Field_Base<double>(id)
+        Field_Base<double>(id,"C")
     {
 
     }
@@ -132,7 +138,7 @@ public:
         {
             oss << "\t";
         }
-        oss << "[" << this->getId() << "]   " << a.asString() << endl;
+        oss << "[" << this->getId() << "] [" << a.getFieldName() <<"]  " << a.asString() << endl;
 
         return oss.str();
     }
@@ -172,7 +178,7 @@ public:
         {
             oss << "\t";
         }
-        oss << "[" << this->getId() << "]   " << b.asString() << endl;
+        oss << "[" << this->getId() << "] [" << b.getFieldName() <<"]  " << b.asString() << endl;
 
         return oss.str();
     }
@@ -211,7 +217,7 @@ public:
         {
             oss << "\t";
         }
-        oss << "[" << this->getId() << "]   " << c.asString() << endl;
+        oss << "[" << this->getId() << "] [" << c.getFieldName() <<"]  " << c.asString() << endl;
 
         return oss.str();
     }
@@ -245,10 +251,24 @@ class DKV
 {
 public:
     typedef string FieldDefinition;
+    string getName() const
+    {
+        return "DKV";
+    }
+};
+
+class DKV_MESSAGECONROL
+{
+public:
+    typedef string FieldDefinition;
+    string getName() const
+    {
+        return "DKV_MESSAGECONROL";
+    }
 };
 
 template <class T>
-class IfsfMessage
+class IfsfMessage: public T
 {
 public:
     typedef map<int,typename T::FieldDefinition> Fields;
@@ -363,7 +383,7 @@ public:
             Field_A_Concrete,
             Field_B_Concrete,
             Seriliazible,
-            IfsfMessage<DKV>
+            IfsfMessage<DKV_MESSAGECONROL>
         ),
         CompositeField>
     Field_D;
@@ -399,7 +419,8 @@ public:
     {
         int pad=padding+1;
         ostringstream oss;
-        oss << "[" << this->getId() << "]   " << d.asString(pad) << endl;
+        oss << "[" << this->getId() << "] [" << d.getName() <<"]  " << endl;
+        oss << d.asString(pad) << endl;
 
         return oss.str();
     }
