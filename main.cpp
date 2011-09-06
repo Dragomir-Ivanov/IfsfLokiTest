@@ -125,9 +125,16 @@ public:
         a.deserialize(buffer);
     }
 
-    string asString() const
+    string asString(const int padding) const
     {
-        return a.asString();
+        ostringstream oss;
+        for (int i=0;i<padding;++i)
+        {
+            oss << "\t";
+        }
+        oss << "[" << this->getId() << "]   " << a.asString() << endl;
+
+        return oss.str();
     }
 
     size_t getId() const
@@ -158,9 +165,16 @@ public:
         b.deserialize(buffer);
     }
 
-    string asString() const
+    string asString(const int padding) const
     {
-        return b.asString();
+        ostringstream oss;
+        for (int i=0;i<padding;++i)
+        {
+            oss << "\t";
+        }
+        oss << "[" << this->getId() << "]   " << b.asString() << endl;
+
+        return oss.str();
     }
 
     size_t getId() const
@@ -190,9 +204,16 @@ public:
         c.deserialize(buffer);
     }
 
-    string asString() const
+    string asString(const int padding) const
     {
-        return c.asString();
+        ostringstream oss;
+        for (int i=0;i<padding;++i)
+        {
+            oss << "\t";
+        }
+        oss << "[" << this->getId() << "]   " << c.asString() << endl;
+
+        return oss.str();
     }
 
     size_t getId() const
@@ -245,7 +266,6 @@ class CompositeField: public Base, public T
 public:
     void serialize() const
     {
-        cout << T::serializeField() << endl;
         Base::fields_[T::getId()]=T::serializeField();
 
         Base::serialize();
@@ -259,10 +279,10 @@ public:
         Base::deserialize();
     }
 
-    string asString() const
+    string asString(const int padding) const
     {
-        string s=T::asString();
-        s.append(Base::asString());
+        string s=T::asString(padding);
+        s.append(Base::asString(padding));
 
         return s;
     }
@@ -280,7 +300,7 @@ public:
     {
     }
 
-    string asString() const
+    string asString(const int padding) const
     {
         return string();
     }
@@ -299,7 +319,7 @@ public:
     {
     }
 
-    string asString() const
+    string asString(const int padding) const
     {
         return string();
     }
@@ -317,7 +337,7 @@ public:
     {
     }
 
-    string asString() const
+    string asString(const int padding) const
     {
         return string();
     }
@@ -375,9 +395,13 @@ public:
 
     }
 
-    string asString() const
+    string asString(const int padding) const
     {
-        return d.asString();
+        int pad=padding+1;
+        ostringstream oss;
+        oss << "[" << this->getId() << "]   " << d.asString(pad) << endl;
+
+        return oss.str();
     }
 
     size_t getId() const
@@ -406,11 +430,11 @@ int main()
     message.d.a(16);
     message.d.b("kkk");
 
+    string s=message.asString(0);
+    cout << s << endl;
+
     message.serialize();
     message.deserialize();
-
-    string s=message.asString();
-    cout << s << endl;
 
     map<int,typename DKV::FieldDefinition> fields=message.getFields();
     map<int,typename DKV::FieldDefinition>::iterator fields_it=fields.begin();
