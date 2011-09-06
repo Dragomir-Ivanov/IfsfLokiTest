@@ -17,7 +17,7 @@ public:
     typedef T DataType;
 
     Field_Base(const size_t id,const string& name):
-        id_(id),fieldName_(name)
+        id_(id),name_(name)
     {
     }
 
@@ -57,15 +57,15 @@ public:
         return id_;
     }
 
-    string getFieldName() const
+    string getName() const
     {
-        return fieldName_;
+        return name_;
     }
 
 private:
     size_t id_;
     DataType data_;
-    string fieldName_;
+    string name_;
 
     Field_Base();
 };
@@ -138,7 +138,7 @@ public:
         {
             oss << "\t";
         }
-        oss << "[" << this->getId() << "] [" << a.getFieldName() <<"]  " << a.asString() << endl;
+        oss << "[" << this->getId() << "] [" << a.getName() <<"]  " << a.asString() << endl;
 
         return oss.str();
     }
@@ -178,7 +178,7 @@ public:
         {
             oss << "\t";
         }
-        oss << "[" << this->getId() << "] [" << b.getFieldName() <<"]  " << b.asString() << endl;
+        oss << "[" << this->getId() << "] [" << b.getName() <<"]  " << b.asString() << endl;
 
         return oss.str();
     }
@@ -217,7 +217,7 @@ public:
         {
             oss << "\t";
         }
-        oss << "[" << this->getId() << "] [" << c.getFieldName() <<"]  " << c.asString() << endl;
+        oss << "[" << this->getId() << "] [" << c.getName() <<"]  " << c.asString() << endl;
 
         return oss.str();
     }
