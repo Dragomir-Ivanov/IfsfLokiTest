@@ -1,6 +1,8 @@
 
 #include <iostream>
 #include <sstream>
+#include <map>
+
 #include <loki/Typelist.h>
 #include <loki/HierarchyGenerators.h>
 
@@ -43,7 +45,14 @@ public:
 
     }
 
-    size_t getId()
+    string asString() const
+    {
+        ostringstream oss;
+        oss << data_;
+        return oss.str();
+    }
+
+    size_t getId() const
     {
         return id_;
     }
@@ -106,14 +115,24 @@ public:
 
     }
 
-    string serialize() const
+    string serializeField() const
     {
         return a.serialize();
     }
 
-    void deserialize(string& buffer)
+    void deserializeField(string& buffer)
     {
         a.deserialize(buffer);
+    }
+
+    string asString() const
+    {
+        return a.asString();
+    }
+
+    size_t getId() const
+    {
+        return a.getId();
     }
 };
 
@@ -129,14 +148,24 @@ public:
 
     }
 
-    string serialize() const
+    string serializeField() const
     {
         return b.serialize();
     }
 
-    void deserialize(string& buffer)
+    void deserializeField(string& buffer)
     {
         b.deserialize(buffer);
+    }
+
+    string asString() const
+    {
+        return b.asString();
+    }
+
+    size_t getId() const
+    {
+        return b.getId();
     }
 };
 
@@ -151,14 +180,24 @@ public:
 
     }
 
-    string serialize() const
+    string serializeField() const
     {
         return c.serialize();
     }
 
-    void deserialize(string& buffer)
+    void deserializeField(string& buffer)
     {
         c.deserialize(buffer);
+    }
+
+    string asString() const
+    {
+        return c.asString();
+    }
+
+    size_t getId() const
+    {
+        return c.getId();
     }
 };
 
@@ -174,6 +213,30 @@ public:
     {
 
     }
+
+    string asString() const
+    {
+        return string();
+    }
+};
+
+class DKV
+{
+public:
+    typedef string FieldDefinition;
+};
+
+template <class T>
+class IfsfMessage
+{
+public:
+    typedef map<int,typename T::FieldDefinition> Fields;
+    Fields fields_;
+
+    Fields getFields() const
+    {
+        return fields_;
+    }
 };
 
 template <class T, class Base>
@@ -182,7 +245,8 @@ class CompositeField: public Base, public T
 public:
     void serialize()
     {
-        cout << T::serialize() << endl;
+        cout << T::serializeField() << endl;
+        Base::fields_[T::getId()]=T::serializeField();
 
         Base::serialize();
     }
@@ -190,12 +254,56 @@ public:
     void deserialize()
     {
         string buffer;
-        T::deserialize(buffer);
+        T::deserializeField(buffer);
 
         Base::deserialize();
     }
+
+    string asString() const
+    {
+        string s=T::asString();
+        s.append(Base::asString());
+
+        return s;
+    }
 };
 
+template <>
+class CompositeField<Seriliazible,EmptyType>: public EmptyType, public Seriliazible
+{
+public:
+    void serialize()
+    {
+    }
+
+    void deserialize()
+    {
+    }
+
+    string asString() const
+    {
+        return string();
+    }
+};
+
+
+template <class Base>
+class CompositeField<Seriliazible,Base>: public Base, public Seriliazible
+{
+public:
+    void serialize()
+    {
+    }
+
+    void deserialize()
+    {
+    }
+
+    string asString() const
+    {
+        return string();
+    }
+};
 
 template <class T>
 class CompositeField<T,EmptyType>: public EmptyType, public T
@@ -208,14 +316,32 @@ public:
     void deserialize()
     {
     }
+
+    string asString() const
+    {
+        return string();
+    }
 };
 
+template <typename T,class Base>
+class CompositeField<IfsfMessage<T>,Base>: public Base, public IfsfMessage<T>
+{
+public:
+};
+
+template <typename T>
+class CompositeField<IfsfMessage<T>,EmptyType>: public EmptyType, public IfsfMessage<T>
+{
+public:
+};
 
 typedef GenLinearHierarchy<
-    LOKI_TYPELIST_4(Field_A_Concrete,
+    LOKI_TYPELIST_5(Field_A_Concrete,
                Field_B_Concrete,
                Field_C_Concrete,
-               Seriliazible),
+               Seriliazible,
+               IfsfMessage<DKV>
+                    ),
     CompositeField>
 Message;
 
@@ -228,6 +354,16 @@ int main()
 
     message.serialize();
     message.deserialize();
+
+    string s=message.asString();
+    cout << s << endl;
+
+    map<int,typename DKV::FieldDefinition> fields=message.getFields();
+    map<int,typename DKV::FieldDefinition>::iterator fields_it=fields.begin();
+    for (;fields_it!=fields.end();++fields_it)
+    {
+        cout << "Id=" << fields_it->first << "  value=(" << fields_it->second << ")" << endl;
+    }
 
     return 0;
 }
