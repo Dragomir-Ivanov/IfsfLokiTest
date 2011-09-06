@@ -204,7 +204,7 @@ public:
 class Seriliazible
 {
 public:
-    void serialiaze()
+    void serialiaze() const
     {
 
     }
@@ -231,7 +231,7 @@ class IfsfMessage
 {
 public:
     typedef map<int,typename T::FieldDefinition> Fields;
-    Fields fields_;
+    mutable Fields fields_;
 
     Fields getFields() const
     {
@@ -243,7 +243,7 @@ template <class T, class Base>
 class CompositeField: public Base, public T
 {
 public:
-    void serialize()
+    void serialize() const
     {
         cout << T::serializeField() << endl;
         Base::fields_[T::getId()]=T::serializeField();
@@ -272,7 +272,7 @@ template <>
 class CompositeField<Seriliazible,EmptyType>: public EmptyType, public Seriliazible
 {
 public:
-    void serialize()
+    void serialize() const
     {
     }
 
@@ -291,7 +291,7 @@ template <class Base>
 class CompositeField<Seriliazible,Base>: public Base, public Seriliazible
 {
 public:
-    void serialize()
+    void serialize() const
     {
     }
 
@@ -309,7 +309,7 @@ template <class T>
 class CompositeField<T,EmptyType>: public EmptyType, public T
 {
 public:
-    void serialize()
+    void serialize() const
     {
     }
 
@@ -335,10 +335,62 @@ class CompositeField<IfsfMessage<T>,EmptyType>: public EmptyType, public IfsfMes
 public:
 };
 
+class Field_D_Concrete
+{
+public:
+    typedef GenLinearHierarchy<
+        LOKI_TYPELIST_4(
+            Field_A_Concrete,
+            Field_B_Concrete,
+            Seriliazible,
+            IfsfMessage<DKV>
+        ),
+        CompositeField>
+    Field_D;
+
+    Field_D d;
+
+    Field_D_Concrete()
+    {
+
+    }
+
+    string serializeField() const
+    {
+        d.serialize();
+
+        ostringstream oss;
+        map<int,typename DKV::FieldDefinition> fields=d.getFields();
+        map<int,typename DKV::FieldDefinition>::iterator fields_it=fields.begin();
+        for (;fields_it!=fields.end();++fields_it)
+        {
+            oss << fields_it->second;
+        }
+
+        return oss.str();
+    }
+
+    void deserializeField(string& buffer)
+    {
+
+    }
+
+    string asString() const
+    {
+        return d.asString();
+    }
+
+    size_t getId() const
+    {
+        return 16;
+    }
+};
+
 typedef GenLinearHierarchy<
-    LOKI_TYPELIST_5(Field_A_Concrete,
+    LOKI_TYPELIST_6(Field_A_Concrete,
                Field_B_Concrete,
                Field_C_Concrete,
+               Field_D_Concrete,
                Seriliazible,
                IfsfMessage<DKV>
                     ),
@@ -351,6 +403,8 @@ int main()
     message.a(6);
     message.b("dads");
     message.c(67.88);
+    message.d.a(16);
+    message.d.b("kkk");
 
     message.serialize();
     message.deserialize();
