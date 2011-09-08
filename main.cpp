@@ -109,6 +109,7 @@ private:
     Field_C();
 };
 
+template <int ID>
 class Field_A_Concrete
 {
 public:
@@ -116,7 +117,7 @@ public:
     Field_A a;
 
     Field_A_Concrete():
-        a(0)
+        a(ID)
     {
 
     }
@@ -149,6 +150,7 @@ public:
     }
 };
 
+template <int ID>
 class Field_B_Concrete
 {
 public:
@@ -156,7 +158,7 @@ public:
     Field_B b;
 
     Field_B_Concrete():
-        b(1)
+        b(ID)
     {
 
     }
@@ -189,13 +191,14 @@ public:
     }
 };
 
+template <int ID>
 class Field_C_Concrete
 {
 public:
     Field_C c;
 
     Field_C_Concrete():
-        c(2)
+        c(ID)
     {
 
     }
@@ -375,13 +378,14 @@ class CompositeField<IfsfMessage<T>,EmptyType>: public EmptyType, public IfsfMes
 public:
 };
 
+template <int ID>
 class Field_D_Concrete
 {
 public:
     typedef GenLinearHierarchy<
         LOKI_TYPELIST_4(
-            Field_A_Concrete,
-            Field_B_Concrete,
+            Field_A_Concrete<0>,
+            Field_B_Concrete<1>,
             Seriliazible,
             IfsfMessage<DKV_MESSAGECONROL>
         ),
@@ -427,15 +431,15 @@ public:
 
     size_t getId() const
     {
-        return 16;
+        return ID;
     }
 };
 
 typedef GenLinearHierarchy<
-    LOKI_TYPELIST_6(Field_A_Concrete,
-               Field_B_Concrete,
-               Field_C_Concrete,
-               Field_D_Concrete,
+    LOKI_TYPELIST_6(Field_A_Concrete<0>,
+               Field_B_Concrete<1>,
+               Field_C_Concrete<2>,
+               Field_D_Concrete<16>,
                Seriliazible,
                IfsfMessage<DKV>
                     ),
