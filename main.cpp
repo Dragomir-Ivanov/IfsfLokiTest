@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include <map>
+#include <tr1/functional>
 
 #include <loki/Typelist.h>
 #include <loki/HierarchyGenerators.h>
@@ -17,11 +18,16 @@ public:
     typedef T DataType;
 
     Field_Base(const size_t id,const string& name):
-        id_(id),name_(name)
+        id_(id),name_(name),empty_(true)
     {
     }
 
     virtual ~Field_Base() {}
+
+    void registerFuncionPreSerialize(tr1::function<void ()> func)
+    {
+        preDeserializeFunc_=func;
+    }
 
     void operator ()(const DataType& data)
     {
@@ -30,6 +36,19 @@ public:
 
     DataType operator ()()
     {
+        if (empty_)
+        {
+            if (preDeserializeFunc_)
+            {
+                cout << "Call lazy deserialization on field [" << this->getId() << "]" << endl;
+                preDeserializeFunc_();
+            }
+            else
+            {
+                cout << "Will throw on empty field [" << this->getId() << "]" << endl;
+            }
+        }
+
         return data_;
     }
 
@@ -42,7 +61,7 @@ public:
 
     void deserialize(string& buffer)
     {
-
+        cout << "Deserialization of [" << this->getId() << "]" << endl;
     }
 
     string asString() const
@@ -66,6 +85,8 @@ private:
     size_t id_;
     DataType data_;
     string name_;
+    bool empty_;
+    tr1::function<void ()> preDeserializeFunc_;
 
     Field_Base();
 };
@@ -113,7 +134,6 @@ template <int ID>
 class Field_A_Concrete
 {
 public:
-    //static const int Id=0;
     Field_A a;
 
     Field_A_Concrete():
@@ -148,13 +168,17 @@ public:
     {
         return a.getId();
     }
+
+    void registerFuncionPreSerialize(tr1::function<void ()> func)
+    {
+        a.registerFuncionPreSerialize(func);
+    }
 };
 
 template <int ID>
 class Field_B_Concrete
 {
 public:
-    //static const int Id=1;
     Field_B b;
 
     Field_B_Concrete():
@@ -188,6 +212,11 @@ public:
     size_t getId() const
     {
         return b.getId();
+    }
+
+    void registerFuncionPreSerialize(tr1::function<void ()> func)
+    {
+        b.registerFuncionPreSerialize(func);
     }
 };
 
@@ -228,6 +257,11 @@ public:
     size_t getId() const
     {
         return c.getId();
+    }
+
+    void registerFuncionPreSerialize(tr1::function<void ()> func)
+    {
+        c.registerFuncionPreSerialize(func);
     }
 };
 
@@ -296,10 +330,25 @@ public:
 
     void deserialize()
     {
-        string buffer;
-        T::deserializeField(buffer);
+        deserializeOne();
 
         Base::deserialize();
+    }
+
+    void deserializeOne()
+    {
+        cout << "Deserialize field [" << T::getId() << "]" << endl;
+        typename Base::Fields::iterator fields_it=Base::fields_.find(T::getId());
+        if (fields_it!=Base::fields_.end())
+        {
+            T::deserializeField(fields_it->second);
+        }
+    }
+
+    CompositeField()
+    {
+        tr1::function<void ()> func=tr1::bind(&CompositeField<T,Base>::deserializeOne,this);
+        T::registerFuncionPreSerialize(func);
     }
 
     string asString(const int padding) const
@@ -320,6 +369,10 @@ public:
     }
 
     void deserialize()
+    {
+    }
+
+    void deserializeOne()
     {
     }
 
@@ -433,6 +486,11 @@ public:
     {
         return ID;
     }
+
+    void registerFuncionPreSerialize(tr1::function<void ()> func)
+    {
+        //d.registerFuncionPreSerialize(func);
+    }
 };
 
 typedef GenLinearHierarchy<
@@ -448,6 +506,15 @@ Message;
 
 int main()
 {
+    {
+        Message message;
+        string tmp=message.b();
+
+        cout << tmp << endl;
+
+        return 0;
+    }
+
     Message message;
     message.a(6);
     message.b("dads");
@@ -459,7 +526,7 @@ int main()
     cout << s << endl;
 
     message.serialize();
-    message.deserialize();
+    //message.deserialize();
 
     map<int,typename DKV::FieldDefinition> fields=message.getFields();
     map<int,typename DKV::FieldDefinition>::iterator fields_it=fields.begin();
