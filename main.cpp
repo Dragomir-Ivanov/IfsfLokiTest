@@ -52,25 +52,6 @@ public:
         return data_;
     }
 
-    string serialize() const
-    {
-        ostringstream oss;
-        oss << data_;
-        return oss.str();
-    }
-
-    void deserialize(string& buffer)
-    {
-        cout << "Deserialization of [" << this->getId() << "]" << endl;
-    }
-
-    string asString() const
-    {
-        ostringstream oss;
-        oss << data_;
-        return oss.str();
-    }
-
     size_t getId() const
     {
         return id_;
@@ -81,14 +62,16 @@ public:
         return name_;
     }
 
-private:
+protected:
     size_t id_;
     DataType data_;
     string name_;
     bool empty_;
     tr1::function<void ()> preDeserializeFunc_;
 
+private:
     Field_Base();
+
 };
 
 class Field_A: public Field_Base<int>
@@ -98,6 +81,27 @@ public:
         Field_Base<int>(id,"A")
     {
 
+    }
+
+    string serialize() const
+    {
+        ostringstream oss;
+        oss << data_;
+        return oss.str();
+    }
+
+    void deserialize(string& buffer)
+    {
+        cout << "Deserialization of [" << this->getId() << "]" << endl;
+        istringstream iss(buffer);
+        iss >> data_;
+    }
+
+    string asString() const
+    {
+        ostringstream oss;
+        oss << data_;
+        return oss.str();
     }
 
 private:
@@ -113,6 +117,26 @@ public:
 
     }
 
+    string serialize() const
+    {
+        ostringstream oss;
+        oss << data_;
+        return oss.str();
+    }
+
+    void deserialize(string& buffer)
+    {
+        cout << "Deserialization of [" << this->getId() << "]" << endl;
+        data_=buffer;
+    }
+
+    string asString() const
+    {
+        ostringstream oss;
+        oss << data_;
+        return oss.str();
+    }
+
 private:
     Field_B();
 };
@@ -126,11 +150,32 @@ public:
 
     }
 
+    string serialize() const
+    {
+        ostringstream oss;
+        oss << data_;
+        return oss.str();
+    }
+
+    void deserialize(string& buffer)
+    {
+        cout << "Deserialization of [" << this->getId() << "]" << endl;
+        istringstream iss(buffer);
+        iss >> data_;
+    }
+
+    string asString() const
+    {
+        ostringstream oss;
+        oss << data_;
+        return oss.str();
+    }
+
 private:
     Field_C();
 };
 
-template <int ID>
+template <size_t ID>
 class Field_A_Concrete
 {
 public:
@@ -175,7 +220,7 @@ public:
     }
 };
 
-template <int ID>
+template <size_t ID>
 class Field_B_Concrete
 {
 public:
@@ -220,7 +265,7 @@ public:
     }
 };
 
-template <int ID>
+template <size_t ID>
 class Field_C_Concrete
 {
 public:
@@ -308,12 +353,24 @@ template <class T>
 class IfsfMessage: public T
 {
 public:
-    typedef map<int,typename T::FieldDefinition> Fields;
+    typedef map<size_t,typename T::FieldDefinition> Fields;
     mutable Fields fields_;
 
     Fields getFields() const
     {
         return fields_;
+    }
+
+    string get() const
+    {
+        ostringstream oss;
+        typename Fields::const_iterator fields_it=fields_.begin();
+        for (;fields_it!=fields_.end();++fields_it)
+        {
+            oss << fields_it->second;
+        }
+
+        return oss.str();
     }
 };
 
@@ -431,7 +488,7 @@ class CompositeField<IfsfMessage<T>,EmptyType>: public EmptyType, public IfsfMes
 public:
 };
 
-template <int ID>
+template <size_t ID>
 class Field_D_Concrete
 {
 public:
@@ -455,16 +512,7 @@ public:
     string serializeField() const
     {
         d.serialize();
-
-        ostringstream oss;
-        map<int,typename DKV::FieldDefinition> fields=d.getFields();
-        map<int,typename DKV::FieldDefinition>::iterator fields_it=fields.begin();
-        for (;fields_it!=fields.end();++fields_it)
-        {
-            oss << fields_it->second;
-        }
-
-        return oss.str();
+        return d.get();
     }
 
     void deserializeField(string& buffer)
@@ -508,6 +556,7 @@ int main()
 {
     {
         Message message;
+        message.fields_[1]="dadas";
         string tmp=message.b();
 
         cout << tmp << endl;
@@ -526,10 +575,11 @@ int main()
     cout << s << endl;
 
     message.serialize();
+    cout << message.get() << endl;
     //message.deserialize();
 
-    map<int,typename DKV::FieldDefinition> fields=message.getFields();
-    map<int,typename DKV::FieldDefinition>::iterator fields_it=fields.begin();
+    map<size_t,DKV::FieldDefinition> fields=message.getFields();
+    map<size_t,DKV::FieldDefinition>::iterator fields_it=fields.begin();
     for (;fields_it!=fields.end();++fields_it)
     {
         cout << "Id=" << fields_it->first << "  value=(" << fields_it->second << ")" << endl;
