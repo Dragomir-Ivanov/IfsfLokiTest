@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <sstream>
 #include <map>
@@ -11,6 +10,18 @@ using namespace std;
 using namespace Loki;
 using namespace Loki::TL;
 
+struct FieldData
+{
+    string data;
+    bool empty;
+
+    FieldData():
+        empty(true)
+    {
+
+    }
+};
+
 template <typename T>
 class Field_Base
 {
@@ -22,9 +33,11 @@ public:
     {
     }
 
-    virtual ~Field_Base() {}
+    virtual ~Field_Base()
+    {
+    }
 
-    void registerFuncionPreSerialize(tr1::function<void ()> func)
+    void registerFuncionPreDeserialize(tr1::function<bool ()> func)
     {
         preDeserializeFunc_=func;
     }
@@ -38,12 +51,14 @@ public:
     {
         if (empty_)
         {
+            bool willThrow=true;
             if (preDeserializeFunc_)
             {
                 cout << "Call lazy deserialization on field [" << this->getId() << "]" << endl;
-                preDeserializeFunc_();
+                willThrow=!preDeserializeFunc_();
             }
-            else
+
+            if (willThrow)
             {
                 cout << "Will throw on empty field [" << this->getId() << "]" << endl;
             }
@@ -62,12 +77,27 @@ public:
         return name_;
     }
 
+    bool empty() const
+    {
+        bool empty=empty_;
+
+        if (empty)
+        {
+            if (preDeserializeFunc_)
+            {
+                empty=preDeserializeFunc_();
+            }
+        }
+
+        return empty;
+    }
+
 protected:
     size_t id_;
     DataType data_;
     string name_;
     bool empty_;
-    tr1::function<void ()> preDeserializeFunc_;
+    tr1::function<bool ()> preDeserializeFunc_;
 
 private:
     Field_Base();
@@ -83,11 +113,18 @@ public:
 
     }
 
-    string serialize() const
+    FieldData serialize() const
     {
-        ostringstream oss;
-        oss << data_;
-        return oss.str();
+        FieldData fieldData;
+        fieldData.empty=empty_;
+        if (!empty_)
+        {
+            ostringstream oss;
+            oss << data_;
+            fieldData.data=oss.str();
+        }
+
+        return fieldData;
     }
 
     void deserialize(string& buffer)
@@ -95,6 +132,8 @@ public:
         cout << "Deserialization of [" << this->getId() << "]" << endl;
         istringstream iss(buffer);
         iss >> data_;
+
+        empty_=false;
     }
 
     string asString() const
@@ -114,20 +153,28 @@ public:
     Field_B(const size_t id):
         Field_Base<string>(id,"B")
     {
-
     }
 
-    string serialize() const
+    FieldData serialize() const
     {
-        ostringstream oss;
-        oss << data_;
-        return oss.str();
+        FieldData fieldData;
+        fieldData.empty=empty_;
+        if (!empty_)
+        {
+            ostringstream oss;
+            oss << data_;
+            fieldData.data=oss.str();
+        }
+
+        return fieldData;
     }
 
     void deserialize(string& buffer)
     {
         cout << "Deserialization of [" << this->getId() << "]" << endl;
         data_=buffer;
+
+        empty_=false;
     }
 
     string asString() const
@@ -150,11 +197,18 @@ public:
 
     }
 
-    string serialize() const
+    FieldData serialize() const
     {
-        ostringstream oss;
-        oss << data_;
-        return oss.str();
+        FieldData fieldData;
+        fieldData.empty=empty_;
+        if (!empty_)
+        {
+            ostringstream oss;
+            oss << data_;
+            fieldData.data=oss.str();
+        }
+
+        return fieldData;
     }
 
     void deserialize(string& buffer)
@@ -162,6 +216,8 @@ public:
         cout << "Deserialization of [" << this->getId() << "]" << endl;
         istringstream iss(buffer);
         iss >> data_;
+
+        empty_=false;
     }
 
     string asString() const
@@ -187,7 +243,7 @@ public:
 
     }
 
-    string serializeField() const
+    FieldData serializeField() const
     {
         return a.serialize();
     }
@@ -214,9 +270,9 @@ public:
         return a.getId();
     }
 
-    void registerFuncionPreSerialize(tr1::function<void ()> func)
+    void registerFuncionPreDeserialize(tr1::function<bool ()> func)
     {
-        a.registerFuncionPreSerialize(func);
+        a.registerFuncionPreDeserialize(func);
     }
 };
 
@@ -232,7 +288,7 @@ public:
 
     }
 
-    string serializeField() const
+    FieldData serializeField() const
     {
         return b.serialize();
     }
@@ -259,9 +315,9 @@ public:
         return b.getId();
     }
 
-    void registerFuncionPreSerialize(tr1::function<void ()> func)
+    void registerFuncionPreDeserialize(tr1::function<bool ()> func)
     {
-        b.registerFuncionPreSerialize(func);
+        b.registerFuncionPreDeserialize(func);
     }
 };
 
@@ -277,7 +333,7 @@ public:
 
     }
 
-    string serializeField() const
+    FieldData serializeField() const
     {
         return c.serialize();
     }
@@ -304,9 +360,9 @@ public:
         return c.getId();
     }
 
-    void registerFuncionPreSerialize(tr1::function<void ()> func)
+    void registerFuncionPreDeserialize(tr1::function<bool ()> func)
     {
-        c.registerFuncionPreSerialize(func);
+        c.registerFuncionPreDeserialize(func);
     }
 };
 
@@ -329,23 +385,23 @@ public:
     }
 };
 
-class DKV
+class DIALECT
 {
 public:
     typedef string FieldDefinition;
     string getName() const
     {
-        return "DKV";
+        return "DIALECT";
     }
 };
 
-class DKV_MESSAGECONROL
+class DIALECT_MESSAGECONROL
 {
 public:
     typedef string FieldDefinition;
     string getName() const
     {
-        return "DKV_MESSAGECONROL";
+        return "DIALECT_MESSAGECONROL";
     }
 };
 
@@ -361,8 +417,11 @@ public:
         return fields_;
     }
 
-    string get() const
+    FieldData get() const
     {
+        FieldData fieldData;
+        fieldData.empty=fields_.empty();
+
         ostringstream oss;
         typename Fields::const_iterator fields_it=fields_.begin();
         for (;fields_it!=fields_.end();++fields_it)
@@ -370,7 +429,9 @@ public:
             oss << fields_it->second;
         }
 
-        return oss.str();
+        fieldData.data=oss.str();
+
+        return fieldData;
     }
 };
 
@@ -380,7 +441,11 @@ class CompositeField: public Base, public T
 public:
     void serialize() const
     {
-        Base::fields_[T::getId()]=T::serializeField();
+        FieldData fieldData=T::serializeField();
+        if (! fieldData.empty)
+        {
+            Base::fields_[T::getId()]=fieldData.data;
+        }
 
         Base::serialize();
     }
@@ -392,20 +457,23 @@ public:
         Base::deserialize();
     }
 
-    void deserializeOne()
+    bool deserializeOne()
     {
         cout << "Deserialize field [" << T::getId() << "]" << endl;
         typename Base::Fields::iterator fields_it=Base::fields_.find(T::getId());
         if (fields_it!=Base::fields_.end())
         {
             T::deserializeField(fields_it->second);
+            return true;
         }
+
+        return false;
     }
 
     CompositeField()
     {
-        tr1::function<void ()> func=tr1::bind(&CompositeField<T,Base>::deserializeOne,this);
-        T::registerFuncionPreSerialize(func);
+        tr1::function<bool ()> func=tr1::bind(&CompositeField<T,Base>::deserializeOne,this);
+        T::registerFuncionPreDeserialize(func);
     }
 
     string asString(const int padding) const
@@ -429,8 +497,9 @@ public:
     {
     }
 
-    void deserializeOne()
+    bool deserializeOne()
     {
+        return true;
     }
 
     string asString(const int padding) const
@@ -497,7 +566,7 @@ public:
             Field_A_Concrete<0>,
             Field_B_Concrete<1>,
             Seriliazible,
-            IfsfMessage<DKV_MESSAGECONROL>
+            IfsfMessage<DIALECT_MESSAGECONROL>
         ),
         CompositeField>
     Field_D;
@@ -509,10 +578,12 @@ public:
 
     }
 
-    string serializeField() const
+    FieldData serializeField() const
     {
         d.serialize();
-        return d.get();
+
+        FieldData fieldData=d.get();
+        return fieldData;
     }
 
     void deserializeField(string& buffer)
@@ -535,9 +606,9 @@ public:
         return ID;
     }
 
-    void registerFuncionPreSerialize(tr1::function<void ()> func)
+    void registerFuncionPreDeserialize(tr1::function<bool ()> func)
     {
-        //d.registerFuncionPreSerialize(func);
+        //d.registerFuncionPreDeserialize(func);
     }
 };
 
@@ -547,7 +618,7 @@ typedef GenLinearHierarchy<
                Field_C_Concrete<2>,
                Field_D_Concrete<16>,
                Seriliazible,
-               IfsfMessage<DKV>
+               IfsfMessage<DIALECT>
                     ),
     CompositeField>
 Message;
@@ -556,8 +627,8 @@ int main()
 {
     {
         Message message;
-        message.fields_[1]="dadas";
-        string tmp=message.b();
+        message.fields_[16]="dadas";
+        string tmp=message.d.b();
 
         cout << tmp << endl;
 
@@ -575,11 +646,11 @@ int main()
     cout << s << endl;
 
     message.serialize();
-    cout << message.get() << endl;
+    cout << message.get().data << endl;
     //message.deserialize();
 
-    map<size_t,DKV::FieldDefinition> fields=message.getFields();
-    map<size_t,DKV::FieldDefinition>::iterator fields_it=fields.begin();
+    map<size_t,DIALECT::FieldDefinition> fields=message.getFields();
+    map<size_t,DIALECT::FieldDefinition>::iterator fields_it=fields.begin();
     for (;fields_it!=fields.end();++fields_it)
     {
         cout << "Id=" << fields_it->first << "  value=(" << fields_it->second << ")" << endl;
